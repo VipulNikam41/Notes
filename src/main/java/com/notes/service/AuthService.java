@@ -4,7 +4,9 @@ import com.notes.dto.AuthTokenResponse;
 import com.notes.dto.CreateUser;
 import com.notes.dto.LoginRequest;
 import com.notes.entity.User;
+import com.notes.entity.UserSession;
 import com.notes.repository.UserRepo;
+import com.notes.repository.UserSessionRepo;
 import com.notes.service.auth.Authorizer;
 import com.notes.service.mapper.UserMapper;
 import com.notes.utils.PasswordUtil;
@@ -13,12 +15,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
+
+import static com.notes.utils.constants.Defaults.MAX_SESSION_ALLOWED;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepo userRepo;
+    private final UserSessionRepo sessionRepo;
 
     private final UserMapper userMapper;
 
@@ -26,10 +32,6 @@ public class AuthService {
 
 
     public Boolean createUser(CreateUser userToCreate) {
-        if (!PasswordUtil.confirmPassword(userToCreate)) {
-            return false;
-        }
-
         User user = userMapper.dtoToEntity(userToCreate);
         if (userRepo.existsByEmail(user.getEmail())) {
             return false;
@@ -45,18 +47,17 @@ public class AuthService {
 
     public AuthTokenResponse getAuthToken(LoginRequest loginRequest) {
         try {
-//            Authentication authentication = authenticationManager.authenticate(
-//                    new UsernamePasswordAuthenticationToken(loginRequest.getEmailId(), loginRequest.getPassword())
-//            );
-//
-//            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-//            String token = generateToken(userDetails.getUsername());
+            User user = userRepo.findByEmail(loginRequest.getEmailId());
+            if (user == null || !PasswordUtil.matchPassword(loginRequest.getPassword(), user.getPassword())) {
+                return null;
+            }
 
-            return AuthTokenResponse.builder()
-                    .authToken(Defaults.AUTH_TYPE)
-                    .authToken(localAuth.getAccessToken(loginRequest))
-                    .expiryTime(Defaults.AUTH_TOKEN_EXPIRY_TIME)
-                    .build();
+            List<UserSession> activeSessions = sessionRepo.getActiveSessionForUser(user.getId());
+            if (activeSessions.size() >= MAX_SESSION_ALLOWED) {
+                return null;
+            }
+
+            return localAuth.createAuthTokenForUser(user);
         } catch (Exception e) {
             return null;
         }
@@ -69,13 +70,10 @@ public class AuthService {
         return localAuth.getUserId(token);
     }
 
-//    private String generateToken(String username) {
-//        Date expiryDate = new Date(System.currentTimeMillis() + Defaults.AUTH_TOKEN_EXPIRY_TIME);
-//
-//        return Jwts.builder()
-//                .setSubject(username)
-//                .setExpiration(expiryDate)
-//                .signWith(SignatureAlgorithm.HS512, Defaults.SECRET_SIGN_KEY)
-//                .compact();
-//    }
+    public Boolean logOutUser(HttpServletRequest request) {
+        String token = request.getHeader(Defaults.AUTHORIZATION)
+                .replace(Defaults.AUTH_TYPE + " ", "");
+
+        return localAuth.expireCurrentSession(token);
+    }
 }

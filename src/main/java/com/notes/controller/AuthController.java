@@ -18,7 +18,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping(Endpoint.CREATE_USER)
-    public Boolean createUser(@RequestBody CreateUser user) {
+    public Boolean createUser(HttpServletRequest request, @RequestBody CreateUser user) {
         return authService.createUser(user);
     }
 
@@ -27,5 +27,12 @@ public class AuthController {
         AuthTokenResponse authTokenResponse = authService.getAuthToken(loginRequest);
 
         return ResponseEntity.ok().body(authTokenResponse);
+    }
+
+    @PostMapping(Endpoint.LOGOUT)
+    public ResponseEntity<Boolean> logout(HttpServletRequest request) {
+        Boolean logOutUser = authService.logOutUser(request);
+
+        return ResponseEntity.ok().body(logOutUser);
     }
 }
