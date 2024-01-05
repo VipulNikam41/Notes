@@ -1,0 +1,16 @@
+<configuration>
+    <property name="LOGS" value="logs" />
+
+    <springProperty name = "mainLevel" source= "logging.level.com.notes"/>
+    <appender name="allLogs" class="ch.qos.logback.core.FileAppender">
+        <file>${LOGS}/logs.log</file>
+        <append>true</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+        </encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="allLogs"/>
+    </root>
+
+</configuration>
