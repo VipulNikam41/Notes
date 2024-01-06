@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 
 public class BitmapUtilTest {
     @Test
-    public void getBitmapWithBitsSetForPosTest() {
+    public void bitmapForAccessPrivilegesTest() {
         List<NoteAccessBits> accessBits = new ArrayList<>();
 
         int bitmap = getBitmapWithBitsSetForPos(accessBits);
@@ -32,17 +32,11 @@ public class BitmapUtilTest {
         bitmap = getBitmapWithBitsSetForPos(accessBits);
         assertEquals(toDecimal("0011"), bitmap);
 
-        accessBits = new ArrayList<>();
-        accessBits.add(SHARE);
-        bitmap = getBitmapWithBitsSetForPos(accessBits);
-        assertEquals(toDecimal("1001"), bitmap);
-
         accessBits.add(READ);
         accessBits.add(EDIT);
         accessBits.add(DELETE);
-        accessBits.add(SHARE);
         bitmap = getBitmapWithBitsSetForPos(accessBits);
-        assertEquals(toDecimal("1111"), bitmap);
+        assertEquals(toDecimal("0111"), bitmap);
     }
 
     @Test

@@ -9,7 +9,6 @@ import com.notes.repository.NotesRepo;
 import com.notes.repository.ShareNoteRepo;
 import com.notes.repository.UserRepo;
 import com.notes.service.mapper.NotesMapper;
-import com.notes.utils.BitmapUtil;
 import com.notes.utils.constants.NoteAccessBits;
 import com.notes.utils.constants.ResponseCode;
 import jakarta.transaction.Transactional;
@@ -86,11 +85,12 @@ public class NotesService {
             }
         }
 
-        Note note = notesMapper.dtoToEntity(noteRequest);
-        note.setId(noteId);
-        note.setOwnerId(loggedInUser);
+        currNote.setTitle(noteRequest.getTitle());
+        currNote.setContent(noteRequest.getContent());
+        currNote.setColour(noteRequest.getColour());
+        currNote.setPriority(noteRequest.getPriority());
 
-        notesRepo.save(note);
+        notesRepo.save(currNote);
 
         return true;
     }
@@ -123,18 +123,19 @@ public class NotesService {
         }
 
         if (!note.getOwnerId().equals(loggedInUser)) {
-            SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, loggedInUser);
-            if (sharedNote == null || !sharedNote.can(NoteAccessBits.SHARE)) {
-                log.error(ResponseCode.AUTH_ERROR.getMessage());
-                return false;
-            }
+            log.error(ResponseCode.AUTH_ERROR.getMessage());
+            return false;
         }
 
         UUID userId = userRepo.getUserIdByEmail(shareNoteRequest.getEmail());
 
-        SharedNote sharedNote = new SharedNote();
-        sharedNote.setNoteId(noteId);
-        sharedNote.setUserId(userId);
+        SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, userId);
+        if(sharedNote == null) {
+            sharedNote = new SharedNote();
+            sharedNote.setNoteId(noteId);
+            sharedNote.setUserId(userId);
+        }
+
         sharedNote.setAccess(shareNoteRequest.getAccessBits());
 
         shareNoteRepo.save(sharedNote);

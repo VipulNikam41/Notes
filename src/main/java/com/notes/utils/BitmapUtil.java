@@ -14,9 +14,7 @@ public class BitmapUtil {
         }
 
         for(NoteAccessBits noteAccessBits : bitPositions) {
-            if (noteAccessBits.equals(NoteAccessBits.EDIT) ||
-                    noteAccessBits.equals(NoteAccessBits.DELETE) ||
-                    noteAccessBits.equals(NoteAccessBits.SHARE)) {
+            if (noteAccessBits.equals(NoteAccessBits.EDIT) || noteAccessBits.equals(NoteAccessBits.DELETE)) {
                 bitPositions.add(NoteAccessBits.READ);
                 break;
             }
