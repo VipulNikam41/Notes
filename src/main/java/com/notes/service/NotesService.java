@@ -1,16 +1,18 @@
 package com.notes.service;
 
-import com.notes.utils.constants.NoteAccessBits;
-import com.notes.utils.constants.ResponseCode;
 import com.notes.dto.NoteRequest;
 import com.notes.dto.NoteResponse;
 import com.notes.dto.ShareNoteRequest;
 import com.notes.entity.Note;
 import com.notes.entity.SharedNote;
-import com.notes.service.mapper.NotesMapper;
 import com.notes.repository.NotesRepo;
 import com.notes.repository.ShareNoteRepo;
 import com.notes.repository.UserRepo;
+import com.notes.service.mapper.NotesMapper;
+import com.notes.utils.BitmapUtil;
+import com.notes.utils.constants.NoteAccessBits;
+import com.notes.utils.constants.ResponseCode;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,10 +52,10 @@ public class NotesService {
     public NoteResponse getNote(UUID loggedInUser, UUID noteId) {
         Note note = notesRepo.findById(noteId).orElse(null);
 
-        if(note != null && !note.getOwnerId().equals(loggedInUser)) {
+        if (note != null && !note.getOwnerId().equals(loggedInUser)) {
             SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, loggedInUser);
 
-            if(sharedNote == null || !sharedNote.can(NoteAccessBits.READ)) {
+            if (sharedNote == null || !sharedNote.can(NoteAccessBits.READ)) {
                 return null;
             }
         }
@@ -72,13 +74,13 @@ public class NotesService {
 
     public Boolean updateNote(UUID loggedInUser, UUID noteId, NoteRequest noteRequest) {
         Note currNote = notesRepo.findById(noteId).orElse(null);
-        if(currNote == null) {
+        if (currNote == null) {
             return false;
         }
 
-        if(!currNote.getOwnerId().equals(loggedInUser)) {
+        if (!currNote.getOwnerId().equals(loggedInUser)) {
             SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, loggedInUser);
-            if(sharedNote == null || !sharedNote.can(NoteAccessBits.EDIT)) {
+            if (sharedNote == null || !sharedNote.can(NoteAccessBits.EDIT)) {
                 log.error(ResponseCode.AUTH_ERROR.getMessage());
                 return false;
             }
@@ -93,15 +95,16 @@ public class NotesService {
         return true;
     }
 
+    @Transactional(rollbackOn = Exception.class)
     public Boolean deleteNote(UUID loggedInUser, UUID noteId) {
         Note note = notesRepo.findById(noteId).orElse(null);
-        if(note == null) {
+        if (note == null) {
             return false;
         }
 
-        if(!note.getOwnerId().equals(loggedInUser)) {
+        if (!note.getOwnerId().equals(loggedInUser)) {
             SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, loggedInUser);
-            if(sharedNote == null || !sharedNote.can(NoteAccessBits.DELETE)) {
+            if (sharedNote == null || !sharedNote.can(NoteAccessBits.DELETE)) {
                 log.error(ResponseCode.AUTH_ERROR.getMessage());
                 return false;
             }
@@ -115,13 +118,13 @@ public class NotesService {
 
     public Boolean shareNote(UUID loggedInUser, UUID noteId, ShareNoteRequest shareNoteRequest) {
         Note note = notesRepo.findById(noteId).orElse(null);
-        if(note == null) {
+        if (note == null) {
             return false;
         }
 
-        if(!note.getOwnerId().equals(loggedInUser)) {
+        if (!note.getOwnerId().equals(loggedInUser)) {
             SharedNote sharedNote = shareNoteRepo.findByNoteIdAndUserId(noteId, loggedInUser);
-            if(sharedNote == null || !sharedNote.can(NoteAccessBits.SHARE)) {
+            if (sharedNote == null || !sharedNote.can(NoteAccessBits.SHARE)) {
                 log.error(ResponseCode.AUTH_ERROR.getMessage());
                 return false;
             }
@@ -132,7 +135,7 @@ public class NotesService {
         SharedNote sharedNote = new SharedNote();
         sharedNote.setNoteId(noteId);
         sharedNote.setUserId(userId);
-        sharedNote.setAccess(NoteAccessBits.getAccessBitmap(shareNoteRequest.getAccessBits()));
+        sharedNote.setAccess(shareNoteRequest.getAccessBits());
 
         shareNoteRepo.save(sharedNote);
 

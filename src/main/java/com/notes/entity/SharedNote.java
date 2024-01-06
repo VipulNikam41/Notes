@@ -1,5 +1,6 @@
 package com.notes.entity;
 
+import com.notes.utils.BitmapUtil;
 import com.notes.utils.constants.NoteAccessBits;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -23,11 +25,15 @@ public class SharedNote extends BaseEntity {
     @Column(name = "access_bitmap")
     private Integer access;
 
-    public boolean can(NoteAccessBits pos) {
-        if(access == null) {
-            return false;
-        }
+    public void setAccess(Integer access) {
+        this.access = access;
+    }
 
-        return (access & (1 << pos.getBitPosition())) != 0;
+    public void setAccess(List<NoteAccessBits> noteAccessBits) {
+        this.access = BitmapUtil.getBitmapWithBitsSetForPos(noteAccessBits);
+    }
+
+    public boolean can(NoteAccessBits pos) {
+        return BitmapUtil.isNthBitSet(access, pos.getBitPosition());
     }
 }

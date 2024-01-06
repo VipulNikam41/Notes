@@ -13,5 +13,5 @@ public class NoteResponse {
     private String content;
     private String colour;
     private Integer priority;
-    private UUID owner;
+    private UUID ownerId;
 }
