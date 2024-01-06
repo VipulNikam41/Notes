@@ -14,5 +14,9 @@ public class Endpoint {
     public static final String DELETE_NOTE = "/api/notes/{id}";
 
     public static final String SHARE_NOTE = "/api/notes/{id}/share";
-    public static final String SEARCH_NOTE = "/api/search?q=:query";
+    public static final String SEARCH_NOTE = "/api/search";
+
+
+    // extra
+    public static final String LOGOUT = "/api/auth/logout";
 }

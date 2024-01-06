@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -128,7 +127,7 @@ public class NotesService {
             }
         }
 
-        UUID userId = userRepo.findByEmail(shareNoteRequest.getEmail());
+        UUID userId = userRepo.getUserIdByEmail(shareNoteRequest.getEmail());
 
         SharedNote sharedNote = new SharedNote();
         sharedNote.setNoteId(noteId);

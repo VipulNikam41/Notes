@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.Data;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
@@ -15,6 +16,9 @@ public class UserSession extends BaseEntity {
     @GeneratedValue
     private UUID id;
     private UUID userId;
-    private Integer session;
     private Date endsOn;
+
+    public boolean isSessionExpired() {
+        return endsOn.toInstant().toEpochMilli() < Instant.now().toEpochMilli();
+    }
 }

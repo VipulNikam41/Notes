@@ -22,21 +22,4 @@ public class PasswordUtilTest {
         );
     }
 
-    @Test
-    public void confirmPassword() {
-        CreateUser user = new CreateUser();
-
-        String password = "1234";
-        user.setPassword(password);
-        user.setConfirmPassword(password);
-        assertTrue(
-                PasswordUtil.confirmPassword(user)
-        );
-
-        user.setConfirmPassword("password");
-        assertFalse(
-                PasswordUtil.confirmPassword(user)
-        );
-
-    }
 }

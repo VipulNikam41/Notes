@@ -8,5 +8,5 @@ import lombok.Data;
 public class AuthTokenResponse {
     private String authType;
     private String authToken;
-    private int expiryTime;
+    private String expiryTime;
 }
