@@ -25,14 +25,12 @@ public class AuthController {
     @PostMapping(Endpoint.LOGIN)
     public ResponseEntity<AuthTokenResponse> getAuthToken(HttpServletRequest request, @RequestBody LoginRequest loginRequest) {
         AuthTokenResponse authTokenResponse = authService.getAuthToken(loginRequest);
-
         return ResponseEntity.ok().body(authTokenResponse);
     }
 
     @PostMapping(Endpoint.LOGOUT)
     public ResponseEntity<Boolean> logout(HttpServletRequest request) {
         Boolean logOutUser = authService.logOutUser(request);
-
         return ResponseEntity.ok().body(logOutUser);
     }
 }

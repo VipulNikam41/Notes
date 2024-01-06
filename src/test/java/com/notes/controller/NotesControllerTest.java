@@ -1,7 +1,6 @@
 package com.notes.controller;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.notes.dto.*;
 import com.notes.utils.constants.Endpoint;
 import org.junit.Test;
@@ -20,8 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,69 +40,108 @@ public class NotesControllerTest {
     private static String authToken;
 
     @Test
-    public void init() throws Exception {
+    public void createNote() {
+        authToken = createAndLogInUserToGetAuthToken();
+
+        UUID noteId1 = this.createANotes(1);
+        NoteResponse note = this.getNote(noteId1);
+        assertNotNull(note);
+
+        UUID noteId2 = this.createANotes(2);
+        UUID noteId3 = this.createANotes(3);
+        UUID noteId4 = this.createANotes(4);
+
+        List<NoteResponse> noteResponses = this.getAllNotes();
+        assertEquals(4, noteResponses.size());
+
+        this.updateNote(noteId2);
+        note = this.getNote(noteId2);
+        assertEquals(ObjectStore.updatedNoteObject().getTitle(), note.getTitle());
+
+        this.deleteNote(noteId3);
+        note = this.getNote(noteId3);
+        assertNull(note);
+
+        List<NoteResponse> results = this.searchNote(" 4");
+        note = results.stream().filter(n -> n.getId().equals(noteId4)).findFirst().orElse(null);
+        assertNotNull(note);
+    }
+
+    private String createAndLogInUserToGetAuthToken() {
         CreateUser createUser = new CreateUser();
         createUser.setName("John Doe");
         createUser.setEmail("john.doe@example.com");
         createUser.setPassword("password");
 
         System.out.println("creating user");
-        Boolean responseContent = this.callApi(HttpMethod.POST, Endpoint.CREATE_USER, createUser, Boolean.class);
+        Boolean result = this.callApi(HttpMethod.POST, Endpoint.CREATE_USER, createUser, Boolean.class);
+        assertTrue(result);
 
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmailId("john.doe@example.com");
         loginRequest.setPassword("password");
 
-        AuthTokenResponse response = this.callApi(HttpMethod.POST,  Endpoint.LOGIN, loginRequest, AuthTokenResponse.class);
-        authToken = response.getAuthToken();
+        AuthTokenResponse response = this.callApi(HttpMethod.POST, Endpoint.LOGIN, loginRequest, AuthTokenResponse.class);
+        assertNotNull(response);
+        assertNotNull(response.getAuthToken());
+
+        return response.getAuthToken();
     }
 
-    @Test
-    public void getNote() {
+    private UUID createANotes(int noteNum) {
+        NoteRequest noteRequest = ObjectStore.newNoteObject(noteNum);
+        return this.callApi(HttpMethod.POST, Endpoint.CREATE_NOTE, noteRequest, UUID.class);
     }
 
-    @Test
-    public void createNote() {
-        NoteRequest noteRequest = new NoteRequest();
-        noteRequest.setTitle("test note");
-        noteRequest.setContent("ertgy tfuyg");
-        noteRequest.setPriority(1);
-        noteRequest.setColour("#3498db");
+    private NoteResponse getNote(UUID noteId) {
+        return this.callApi(
+                HttpMethod.GET,
+                Endpoint.GET_NOTE.replace("{id}", noteId.toString()),
+                null,
+                NoteResponse.class
+        );
+    }
 
-        UUID noteId = this.callApi(HttpMethod.POST, Endpoint.CREATE_NOTE, noteRequest, UUID.class);
-        System.out.println(noteId);
-
+    private List<NoteResponse> getAllNotes() {
         List<Map<String, Object>> list = this.callApi(HttpMethod.GET, Endpoint.GET_NOTES_FOR_USER, null, List.class);
-        List<NoteResponse> noteResponses = list.stream()
+        return list.stream()
                 .map(this::convertToNoteResponse)
                 .toList();
-
-        assertEquals(1, noteResponses.size());
-
-        NoteResponse note = this.callApi(HttpMethod.GET, Endpoint.GET_NOTE.replace("{id}", noteId.toString()), null, NoteResponse.class);
-        assertEquals(noteResponses.get(0).getId(), note.getId());
     }
 
     private NoteResponse convertToNoteResponse(Map<String, Object> map) {
         return NoteResponse.builder()
                 .id(UUID.fromString((String) map.get("id")))
+                .title((String) map.get("title"))
+                .content((String) map.get("content"))
+                .colour((String) map.get("colour"))
+                .priority(((Double) map.get("priority")).intValue())
+                .ownerId(UUID.fromString((String) map.get("ownerId")))
                 .build();
     }
 
-    @Test
-    public void updateNote() {
+    private void updateNote(UUID noteId) {
+        NoteRequest noteRequest = ObjectStore.updatedNoteObject();
+        Boolean updated = this.callApi(HttpMethod.PUT, Endpoint.UPDATE_NOTE.replace("{id}", noteId.toString()), noteRequest, Boolean.class);
+        assertTrue(updated);
     }
 
-    @Test
-    public void deleteNote() {
+    private void deleteNote(UUID noteId) {
+        Boolean deleted = this.callApi(HttpMethod.DELETE, Endpoint.DELETE_NOTE.replace("{id}", noteId.toString()), null, Boolean.class);
+        assertTrue(deleted);
     }
 
-    @Test
-    public void shareNote() {
+    private List<NoteResponse> searchNote(String query) {
+        List<Map<String, Object>> list = this.callApi(HttpMethod.GET, Endpoint.SEARCH_NOTE + "?q="+query, null, List.class);
+        return list.stream()
+                .map(this::convertToNoteResponse)
+                .toList();
     }
 
-    @Test
-    public void searchNote() {
+    private void shareNote(UUID noteId) {
+        ShareNoteRequest shareNoteRequest = ObjectStore.readOnlyShare("email@gm.com");
+        Boolean updated = this.callApi(HttpMethod.GET, Endpoint.SHARE_NOTE.replace("{id}", noteId.toString()), shareNoteRequest, Boolean.class);
+        assertTrue(updated);
     }
 
     private <T> T callApi(HttpMethod method, String url, Object requestBody, Class<T> outputKlass) {
@@ -118,7 +154,6 @@ public class NotesControllerTest {
         headers.setBearerAuth(authToken);
         HttpEntity<String> requestEntity = new HttpEntity<>(userJson, headers);
 
-
         MvcResult result = null;
         try {
             result = mockMvc.perform(MockMvcRequestBuilders
@@ -129,16 +164,12 @@ public class NotesControllerTest {
                     )
                     .andExpect(status().isOk())
                     .andReturn();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
-        try {
             return gson.fromJson(
                     result.getResponse().getContentAsString(),
                     outputKlass
             );
-        } catch (UnsupportedEncodingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
