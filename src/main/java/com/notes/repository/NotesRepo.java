@@ -13,15 +13,16 @@ import java.util.UUID;
 public interface NotesRepo extends JpaRepository<Note, UUID> {
     List<Note> findByOwnerId(UUID ownerId);
 
+    @Query(value = "SELECT n.* FROM notes n " +
+            "LEFT JOIN shared_note sn ON sn.note_Id = n.id " +
+            "WHERE n.owner_Id = :userId " +
+            "OR (sn.user_Id = :userId AND (sn.access_bitmap & (1 << :accessLevel)) != 0)", nativeQuery = true)
+    List<Note> getAllAccessibleNotesForUser(UUID userId, int accessLevel);
+
     @Query("SELECT n FROM " + Note.ENTITY + " n " +
             "LEFT JOIN " + SharedNote.ENTITY + " sn ON sn.noteId = n.id " +
-            "WHERE n.ownerId = :userId " +
-            "OR (sn.userId = :userId AND FUNCTION('BITWISE_AND', sn.access, 2) > 0)")
-    List<Note> getAllAccessibleNotesForUser(UUID userId);
-
-    @Query("SELECT n FROM Note n " +
-            "LEFT JOIN SharedNote sn ON sn.noteId = n.id " +
-            "WHERE (n.ownerId = :userId OR sn.userId = :userId) " +
+            "WHERE (n.ownerId = :userId " +
+            "OR (sn.userId = :userId AND MOD(sn.access, 2) != 0)) " +
             "AND (n.content LIKE %:query% OR n.title LIKE %:query%)")
     List<Note> findByNoteLike(String query, UUID userId);
 }
